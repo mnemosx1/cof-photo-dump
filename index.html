@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>25//26 Photo Dump</title>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-soft: linear-gradient(to bottom right, #ffe4ec, #e3f0ff);
+      --bg-nightcore: linear-gradient(to bottom right, #1c1c2c, #2d1b3f);
+      --bg-y2k: linear-gradient(to bottom right, #d0f0ff, #ffd3fd);
+      --bg-scrapbook: linear-gradient(to bottom right, #f3ffe2, #fceecb);
+    }
+
+    body {
+      font-family: 'Patrick Hand', cursive;
+      margin: 0;
+      padding: 0;
+      transition: background 0.5s ease;
+    }
+
+    body.softcore { background: var(--bg-soft); color: #333; }
+    body.nightcore { background: var(--bg-nightcore); color: #f9f9f9; }
+    body.y2k { background: var(--bg-y2k); color: #222; }
+    body.scrapbook { background: var(--bg-scrapbook); color: #333; }
+
+    header {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .upload-form {
+      max-width: 600px;
+      margin: auto;
+      padding: 2rem;
+      background: rgba(255,255,255,0.9);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    input, textarea, button {
+      width: 100%;
+      margin: 1rem 0;
+      padding: 0.8rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-family: inherit;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      padding: 2rem;
+    }
+
+    .photo-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 0.5rem;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
+    .photo-card img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .timestamp {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    audio {
+      margin-top: 0.5rem;
+      width: 100%;
+    }
+
+    .theme-btn, .slideshow-btn {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: #ff9eb3;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 10000;
+    }
+
+    .slideshow-btn {
+      right: 9rem;
+      background: #8a84e2;
+    }
+
+    #passwordScreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(to bottom right, #fff0f5, #d7e7ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .password-box {
+      text-align: center;
+      background: white;
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    #slideshowOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      color: white;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    #slideshowImage {
+      max-width: 80vw;
+      max-height: 70vh;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+
+    #slideshowCaption {
+      font-size: 1.5rem;
+      padding: 1rem;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    #slideshowClose {
+      position: absolute;
+      top: 1rem;
+      right: 2rem;
+      font-size: 2rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="softcore">
+  <!-- Password Screen -->
+  <div id="passwordScreen">
+    <div class="password-box">
+      <h2>🔒 Enter Secret Code</h2>
+      <input type="password" id="passwordInput" placeholder="Enter password..." />
+      <button onclick="checkPassword()">Unlock</button>
+      <p id="wrongPassword" style="display:none; color: crimson;">Wrong password. Try again.</p>
+    </div>
+  </div>
+
+  <!-- Theme & Slideshow Buttons -->
+  <button class="slideshow-btn" onclick="startSlideshow()">🎞️ Slideshow</button>
+  <button class="theme-btn" onclick="cycleTheme()">🌈 Switch Theme</button>
+
+  <!-- Main -->
+  <header>
+    <h1>25//26 Photo Dump 📸</h1>
+    <p>A shared photo diary with voice notes and clicky vibes.</p>
+  </header>
+
+  <div class="upload-form">
+    <input type="file" accept="image/*" id="photoInput" />
+    <textarea id="captionInput" placeholder="Type your memory here..."></textarea>
+    <input type="file" accept="audio/*" id="voiceInput" />
+    <button onclick="uploadMemory()">Upload Memory</button>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+
+  <!-- Slideshow Mode -->
+  <div id="slideshowOverlay">
+    <span id="slideshowClose" onclick="stopSlideshow()">✖</span>
+    <img id="slideshowImage" />
+    <div id="slideshowCaption"></div>
+  </div>
+
+  <audio id="clickSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_785c07f9d2.mp3" preload="auto"></audio>
+
+  <script>
+    // Password logic
+    function checkPassword() {
+      const input = document.getElementById('passwordInput').value;
+      if (input === 'twentyfive26') {
+        document.getElementById('passwordScreen').style.display = 'none';
+        if (new Date().getMonth() === 11 && new Date().getDate() >= 31) {
+          setTimeout(startSlideshow, 1000);
+        }
+      } else {
+        document.getElementById('wrongPassword').style.display = 'block';
+      }
+    }
+
+    // Theme cycle
+    const themes = ['softcore', 'nightcore', 'y2k', 'scrapbook'];
+    let currentTheme = 0;
+    function cycleTheme() {
+      currentTheme = (currentTheme + 1) % themes.length;
+      document.body.className = themes[currentTheme];
+    }
+
+    // Upload photo
+    const gallery = document.getElementById('gallery');
+    const clickSound = document.getElementById('clickSound');
+    let memoryCards = [];
+
+    function uploadMemory() {
+      clickSound.play();
+      const photoFile = document.getElementById('photoInput').files[0];
+      const caption = document.getElementById('captionInput').value;
+      const voiceFile = document.getElementById('voiceInput').files[0];
+      if (!photoFile) return alert('Please select a photo!');
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const now = new Date();
+        const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const date = now.toLocaleDateString();
+        const imgURL = e.target.result;
+
+        const card = document.createElement('div');
+        card.className = 'photo-card';
+        let voiceHTML = '';
+        if (voiceFile) {
+          const vr = new FileReader();
+          vr.onload = (v) => {
+            voiceHTML = `<audio controls src="${v.target.result}"></audio>`;
+            card.innerHTML = `
+              <img src="${imgURL}" />
+              <p>${caption}</p>
+              <div class="timestamp">🕘 ${date} at ${time}</div>
+              ${voiceHTML}
+            `;
+            gallery.prepend(card);
+            memoryCards.unshift({ img: imgURL, caption });
+          };
+          vr.readAsDataURL(voiceFile);
+        } else {
+          card.innerHTML = `
+            <img src="${imgURL}" />
+            <p>${caption}</p>
+            <div class="timestamp">🕘 ${date} at ${time}</div>
+          `;
+          gallery.prepend(card);
+          memoryCards.unshift({ img: imgURL, caption });
+        }
+      };
+      reader.readAsDataURL(photoFile);
+    }
+
+    // Slideshow
+    let currentSlide = 0;
+    function startSlideshow() {
+      if (memoryCards.length === 0) return alert("No memories uploaded yet!");
+      document.getElementById("slideshowOverlay").style.display = "flex";
+      showSlide(0);
+    }
+
+    function stopSlideshow() {
+      document.getElementById("slideshowOverlay").style.display = "none";
+      currentSlide = 0;
+    }
+
+    function showSlide(index) {
+      const slide = memoryCards[index];
+      if (!slide) return stopSlideshow();
+      document.getElementById("slideshowImage").src = slide.img;
+      document.getElementById("slideshowCaption").textContent = slide.caption;
+      currentSlide++;
+      setTimeout(() => showSlide(currentSlide), 3500);
+    }
+  </script>
+</body>
+</html>
