@@ -9,7 +9,7 @@
       --bg-soft: linear-gradient(to bottom right, #ffe4ec, #e3f0ff);
       --bg-nightcore: linear-gradient(to bottom right, #1c1c2c, #2d1b3f);
       --bg-y2k: linear-gradient(to bottom right, #d0f0ff, #ffd3fd);
-      --bg-scrapbook: linear-gradient(to bottom right, #f3ffe2, #fceecb);
+      --bg-scrapbook: url('https://www.transparenttextures.com/patterns/paper-fibers.png'), #fef9f5;
     }
 
     body {
@@ -27,6 +27,11 @@
     header {
       text-align: center;
       padding: 2rem;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 0.2rem;
     }
 
     .upload-form {
@@ -49,29 +54,37 @@
 
     .gallery {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
       padding: 2rem;
     }
 
     .photo-card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 0.5rem;
-      text-align: center;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      background: #fffefb;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 4px 6px 10px rgba(0,0,0,0.1);
+      transform: rotateZ(calc(-3deg + 6deg * var(--random-rotation)));
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .photo-card:hover {
+      transform: scale(1.03) rotateZ(0deg);
+      z-index: 2;
     }
 
     .photo-card img {
       width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
-      border-radius: 10px;
+      border-radius: 8px;
+      object-fit: contain;
+      max-height: 300px;
     }
 
     .timestamp {
       font-size: 0.85rem;
       color: #888;
+      margin-top: 0.5rem;
     }
 
     audio {
@@ -151,8 +164,7 @@
     }
   </style>
 </head>
-<body class="softcore">
-  <!-- Password Screen -->
+<body class="scrapbook">
   <div id="passwordScreen">
     <div class="password-box">
       <h2>🔒 Enter Secret Code</h2>
@@ -162,26 +174,23 @@
     </div>
   </div>
 
-  <!-- Theme & Slideshow Buttons -->
   <button class="slideshow-btn" onclick="startSlideshow()">🎞️ Slideshow</button>
   <button class="theme-btn" onclick="cycleTheme()">🌈 Switch Theme</button>
 
-  <!-- Main -->
   <header>
     <h1>25//26 Photo Dump 📸</h1>
-    <p>A shared photo diary with voice notes and clicky vibes.</p>
+    <p>A scrapbook-style memory vault with voice notes & slideshows.</p>
   </header>
 
   <div class="upload-form">
     <input type="file" accept="image/*" id="photoInput" />
-    <textarea id="captionInput" placeholder="Type your memory here..."></textarea>
+    <textarea id="captionInput" placeholder="Write a short caption..."></textarea>
     <input type="file" accept="audio/*" id="voiceInput" />
     <button onclick="uploadMemory()">Upload Memory</button>
   </div>
 
   <div class="gallery" id="gallery"></div>
 
-  <!-- Slideshow Mode -->
   <div id="slideshowOverlay">
     <span id="slideshowClose" onclick="stopSlideshow()">✖</span>
     <img id="slideshowImage" />
@@ -191,7 +200,14 @@
   <audio id="clickSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_785c07f9d2.mp3" preload="auto"></audio>
 
   <script>
-    // Password logic
+    const themes = ['softcore', 'nightcore', 'y2k', 'scrapbook'];
+    let currentTheme = 3;
+
+    function cycleTheme() {
+      currentTheme = (currentTheme + 1) % themes.length;
+      document.body.className = themes[currentTheme];
+    }
+
     function checkPassword() {
       const input = document.getElementById('passwordInput').value;
       if (input === 'twentyfive26') {
@@ -204,17 +220,8 @@
       }
     }
 
-    // Theme cycle
-    const themes = ['softcore', 'nightcore', 'y2k', 'scrapbook'];
-    let currentTheme = 0;
-    function cycleTheme() {
-      currentTheme = (currentTheme + 1) % themes.length;
-      document.body.className = themes[currentTheme];
-    }
-
-    // Upload photo
-    const gallery = document.getElementById('gallery');
     const clickSound = document.getElementById('clickSound');
+    const gallery = document.getElementById('gallery');
     let memoryCards = [];
 
     function uploadMemory() {
@@ -233,6 +240,8 @@
 
         const card = document.createElement('div');
         card.className = 'photo-card';
+        card.style.setProperty('--random-rotation', Math.random());
+
         let voiceHTML = '';
         if (voiceFile) {
           const vr = new FileReader();
@@ -261,7 +270,6 @@
       reader.readAsDataURL(photoFile);
     }
 
-    // Slideshow
     let currentSlide = 0;
     function startSlideshow() {
       if (memoryCards.length === 0) return alert("No memories uploaded yet!");
